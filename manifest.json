@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "caio.omarchy-notify",
+  "name": "Omarchy Notify",
+  "version": "0.1.0",
+  "author": "Caio Rodrigues",
+  "license": "MIT",
+  "description": "A minimal, keyboard-first notification center for the Omarchy shell.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Omarchy Notify",
+    "description": "Browse Omarchy notifications from a compact keyboard-first panel.",
+    "category": "Status",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
