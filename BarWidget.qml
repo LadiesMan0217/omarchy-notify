@@ -62,6 +62,8 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     labelVisible: false
+    // WidgetButton otherwise hides icon-only content whose label is empty.
+    hasVisualContent: true
     tooltipText: root.dnd ? "Do Not Disturb" : root.unreadCount === 0 ? "No notifications"
       : root.unreadCount === 1 ? "1 unread notification" : root.unreadCount + " unread notifications"
 
