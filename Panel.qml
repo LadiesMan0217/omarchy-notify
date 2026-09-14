@@ -83,7 +83,7 @@ Panel {
   PanelWindow {
     id: panel
     screen: root.anchorItem ? root.anchorItem.QsWindow.window.screen : null
-    width: Math.min(Style.space(440), screen ? screen.width : Style.space(440))
+    implicitWidth: Math.min(Style.space(440), screen ? screen.width : Style.space(440))
     visible: root.opened || drawer.x < width
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
