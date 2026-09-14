@@ -7,12 +7,9 @@ BarWidget {
   id: root
   moduleName: "caio.omarchy-notify"
 
-  // A third-party widget receives the capability-scoped shell facade through
-  // its injected bar API (`bar.shell`), not as the host ShellRoot itself.
-  // Do not reach around that facade: use only its public service proxy.
-  readonly property var pluginShell: bar ? bar.shell : null
-  readonly property var notificationService: pluginShell && typeof pluginShell.serviceFor === "function"
-    ? pluginShell.serviceFor(root.moduleName) : null
+  // A bar-widget does not receive a separately started `service` entry point.
+  // Keep the archive reader as a child so its lifetime matches the live bar.
+  readonly property var notificationService: archiveService
   readonly property int unreadCount: notificationService ? Number(notificationService.unread || 0) : 0
   readonly property bool dnd: false
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
@@ -35,6 +32,10 @@ BarWidget {
   function toggle() { if (panelLoader.item) panelLoader.item.toggle() }
   function closeForPopoutSwitch() { if (panelLoader.item) panelLoader.item.closeForPopoutSwitch() }
   function toggleDnd() {}
+
+  Service {
+    id: archiveService
+  }
 
   onBarChanged: injectPanel()
   onSettingsChanged: injectPanel()

@@ -19,6 +19,7 @@ Panel {
   readonly property bool dnd: false
   property int tab: 0 // 0 active/unread; 1 replayed history
   property string query: ""
+  property bool searchMode: false
   property int selectedIndex: 0
   property bool helpOpen: false
   property var rows: []
@@ -30,12 +31,19 @@ Panel {
     if (rows.length === 0) selectedIndex = 0
     Qt.callLater(function() { if (rows.length > 0) list.positionViewAtIndex(selectedIndex, ListView.Contain) })
   }
-  function open() { refreshRows(); controller.show() }
+  function open() {
+    searchMode = false
+    query = ""
+    refreshRows()
+    controller.show()
+  }
   function close() {
     // Keep the unread tab useful while the center is open; opening it is the
     // acknowledgement point, so the next opening starts with fresh arrivals.
     if (notificationService && typeof notificationService.markSeen === "function") notificationService.markSeen()
     helpOpen = false
+    searchMode = false
+    query = ""
     controller.hide()
   }
   function toggle() { opened ? close() : open() }
@@ -62,9 +70,17 @@ Panel {
   function toggleDnd() {
     if (notificationService && typeof notificationService.setDoNotDisturb === "function") notificationService.setDoNotDisturb(!dnd)
   }
-  function focusSearch() { search.forceActiveFocus(); search.selectAll() }
+  function focusSearch() {
+    searchMode = true
+    Qt.callLater(function() { search.forceActiveFocus(); search.selectAll() })
+  }
+  function exitSearch() {
+    query = ""
+    searchMode = false
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+  }
   function handleEscape() {
-    if (search.activeFocus) { query = ""; keyCatcher.forceActiveFocus() }
+    if (searchMode) exitSearch()
     else close()
   }
 
@@ -118,7 +134,7 @@ Panel {
       id: keyCatcher
       anchors.fill: parent
       anchors.margins: Style.spacing.popupPadding
-      blocked: search.activeFocus
+      blocked: root.searchMode
       onMoveRequested: function(dx, dy) { if (dy) root.move(dy); else if (dx) root.setTab(root.tab + dx) }
       onActivateRequested: root.activateSelected()
       onDeleteRequested: root.dismissSelected()
@@ -152,12 +168,14 @@ Panel {
         TextField {
           id: search
           Layout.fillWidth: true
-          placeholderText: "Search notifications  /"
+          Layout.preferredHeight: visible ? implicitHeight : 0
+          visible: root.searchMode
+          placeholderText: "Search notifications"
           text: root.query
           foreground: root.barForeground
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           onTextEdited: root.query = text
-          Keys.onPressed: function(event) { if (event.key === Qt.Key_Escape) { root.handleEscape(); event.accepted = true } }
+          Keys.onPressed: function(event) { if (event.key === Qt.Key_Escape) { root.exitSearch(); event.accepted = true } }
         }
 
         RowLayout {
@@ -236,6 +254,7 @@ Panel {
         }
 
         Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · Enter open · d/x dismiss · / search · Tab or h/l tabs · D DND · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; text: "j/k move · Enter open · x dismiss · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
       }
       }
     }

@@ -6,9 +6,8 @@
   "author": "Caio Rodrigues",
   "license": "MIT",
   "description": "A minimal, keyboard-first notification center for the Omarchy shell.",
-  "kinds": ["service", "bar-widget"],
+  "kinds": ["bar-widget"],
   "entryPoints": {
-    "service": "Service.qml",
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
