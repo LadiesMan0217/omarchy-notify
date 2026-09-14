@@ -1,6 +1,6 @@
 # Omarchy Notify
 
-> Placeholder de preview — adicione um `preview.png` real antes de publicar.
+![Preview da gaveta Omarchy Notify](preview.png)
 
 Central de notificações minimalista e keyboard-first para o shell Quattro do Omarchy. Ela desliza pela direita, mantém o desktop visível e usa automaticamente o tema ativo do Omarchy.
 

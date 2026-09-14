@@ -1,6 +1,6 @@
 # Omarchy Notify
 
-> Preview placeholder — add a real `preview.png` before publishing.
+![Omarchy Notify drawer preview](preview.png)
 
 Omarchy Notify is a minimal, keyboard-first notification drawer for the Omarchy Quattro shell. It slides in from the right, keeps the desktop visible, and follows the active Omarchy theme.
 
