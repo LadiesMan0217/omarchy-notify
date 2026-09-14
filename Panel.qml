@@ -95,9 +95,9 @@ Panel {
       top: true
       bottom: true
       right: true
-      topMargin: root.bar && root.bar.position === "top" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
-      bottomMargin: root.bar && root.bar.position === "bottom" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
     }
+    anchors.topMargin: root.bar && root.bar.position === "top" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
+    anchors.bottomMargin: root.bar && root.bar.position === "bottom" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
 
     BorderSurface {
       id: drawer
