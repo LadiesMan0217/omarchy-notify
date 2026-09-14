@@ -7,8 +7,8 @@ BarWidget {
   id: root
   moduleName: "caio.omarchy-notify"
 
-  // A bar-widget does not receive a separately started `service` entry point.
-  // Keep the archive reader as a child so its lifetime matches the live bar.
+  // O serviço do manifesto não sobe junto do widget. O leitor fica aqui para
+  // acompanhar a vida útil da barra.
   readonly property var notificationService: archiveService
   readonly property int unreadCount: notificationService ? Number(notificationService.unread || 0) : 0
   readonly property bool dnd: false
@@ -63,7 +63,7 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     labelVisible: false
-    // WidgetButton otherwise hides icon-only content whose label is empty.
+    // Sem label, o WidgetButton esconderia o sino.
     hasVisualContent: true
     tooltipText: root.dnd ? "Do Not Disturb" : root.unreadCount === 0 ? "No notifications"
       : root.unreadCount === 1 ? "1 unread notification" : root.unreadCount + " unread notifications"

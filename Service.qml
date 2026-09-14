@@ -2,8 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// A private archive of snapshots already persisted by omarchy.notifications.
-// It is not a notification daemon and never writes to Omarchy's state tree.
+// Arquivo privado dos snapshots que o Omarchy já salvou. Não é outro daemon.
 Item {
   id: root
   property var shell: null

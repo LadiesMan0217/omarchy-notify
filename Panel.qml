@@ -17,7 +17,7 @@ Panel {
   readonly property var barIdentity: hostWidget || root
   readonly property bool serviceAvailable: notificationService !== null && notificationService.loaded === true
   readonly property bool dnd: false
-  property int tab: 0 // 0 active/unread; 1 replayed history
+  property int tab: 0 // 0 = não lidas; 1 = histórico
   property string query: ""
   property bool searchMode: false
   property int selectedIndex: 0
@@ -38,8 +38,7 @@ Panel {
     controller.show()
   }
   function close() {
-    // Keep the unread tab useful while the center is open; opening it is the
-    // acknowledgement point, so the next opening starts with fresh arrivals.
+    // Fechar a gaveta confirma as entradas vistas nesta abertura.
     if (notificationService && typeof notificationService.markSeen === "function") notificationService.markSeen()
     helpOpen = false
     searchMode = false
@@ -65,7 +64,7 @@ Panel {
     refreshRows()
   }
   function activateSelected() {
-    // Archived snapshots intentionally do not replay sender-provided actions.
+    // Snapshot não executa ação enviada pelo aplicativo.
   }
   function toggleDnd() {
     if (notificationService && typeof notificationService.setDoNotDisturb === "function") notificationService.setDoNotDisturb(!dnd)
@@ -94,9 +93,8 @@ Panel {
     function onLoadedChanged() { root.refreshRows() }
   }
 
-  // Quattro 4.0.3 has KeyboardPanel for bar-attached popovers, but no drawer
-  // primitive. This is intentionally a narrow PanelWindow, not a full-screen
-  // modal: the desktop stays interactive and visible beside the center.
+  // O Quattro não tem drawer pronto. Este PanelWindow fica estreito de
+  // propósito: desktop e gaveta continuam visíveis ao mesmo tempo.
   PanelWindow {
     id: panel
     screen: root.anchorItem ? root.anchorItem.QsWindow.window.screen : null
@@ -106,7 +104,7 @@ Panel {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.namespace: "omarchy-notify-drawer"
     WlrLayershell.layer: WlrLayer.Overlay
-    // The brief exclusive mapping makes an IPC-opened drawer keyboard-ready.
+    // Garante foco de teclado quando a gaveta abre por IPC.
     WlrLayershell.keyboardFocus: root.opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     anchors {
       top: true

@@ -1,16 +1,13 @@
 .pragma library
 
-// Presentation-only helpers. This file deliberately owns no QML state and
-// never mutates an Omarchy service model.
+// Só prepara dados para a tela. Estado fica no QML.
 
 function text(value) {
   return String(value === undefined || value === null ? "" : value)
 }
 
 function plainBody(value) {
-  // The built-in daemon safely handles markup in its toast renderer. The
-  // center is plain-text by design: it never feeds sender-controlled HTML to
-  // a rich-text item and consequently cannot load remote <img> sources.
+  // Corpo de notificação entra como texto, nunca como HTML.
   return text(value)
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/gi, " ")
@@ -43,8 +40,7 @@ function relativeTime(timestamp, now) {
 
 function localImageSource(value) {
   var source = text(value)
-  // Never allow the center itself to turn notification content into a network
-  // request. The daemon persists accepted notification images locally.
+  // Só aceita imagem local; o drawer não abre rede por conteúdo de notificação.
   return source.indexOf("file://") === 0 || source.charAt(0) === "/" ? source : ""
 }
 

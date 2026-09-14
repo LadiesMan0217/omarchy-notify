@@ -5,8 +5,7 @@ Omarchy Notify intentionally does not traverse private shell objects. On Omarchy
 For a secure third-party notification center, the shell could expose a dedicated, capability-scoped facade to the widget that requested it:
 
 ```qml
-// Read-only presentation model. Rows must be snapshots, never live
-// Notification QObject references.
+// Modelo só de leitura. Linhas precisam ser snapshots, nunca QObjects vivos.
 property var popupModel
 property bool doNotDisturb
 
