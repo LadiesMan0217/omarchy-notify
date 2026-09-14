@@ -11,13 +11,10 @@ BarWidget {
   // its injected bar API (`bar.shell`), not as the host ShellRoot itself.
   // Do not reach around that facade: use only its public service proxy.
   readonly property var pluginShell: bar ? bar.shell : null
-  readonly property var notificationService: pluginShell && typeof pluginShell.firstPartyServiceFor === "function"
-    ? pluginShell.firstPartyServiceFor("omarchy.notifications") : null
-  readonly property var notificationModel: notificationService && "popupModel" in notificationService
-    ? notificationService.popupModel : null
-  readonly property int unreadCount: notificationModel && typeof notificationModel.count === "number"
-    ? notificationModel.count : 0
-  readonly property bool dnd: notificationService && notificationService.doNotDisturb === true
+  readonly property var notificationService: pluginShell && typeof pluginShell.serviceFor === "function"
+    ? pluginShell.serviceFor(root.moduleName) : null
+  readonly property int unreadCount: notificationService ? Number(notificationService.unread || 0) : 0
+  readonly property bool dnd: false
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
 
@@ -37,10 +34,7 @@ BarWidget {
   function close() { if (panelLoader.item) panelLoader.item.close() }
   function toggle() { if (panelLoader.item) panelLoader.item.toggle() }
   function closeForPopoutSwitch() { if (panelLoader.item) panelLoader.item.closeForPopoutSwitch() }
-  function toggleDnd() {
-    if (notificationService && typeof notificationService.setDoNotDisturb === "function")
-      notificationService.setDoNotDisturb(!dnd)
-  }
+  function toggleDnd() {}
 
   onBarChanged: injectPanel()
   onSettingsChanged: injectPanel()

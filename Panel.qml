@@ -15,11 +15,8 @@ Panel {
   property var hostWidget: null
   property var notificationService: null
   readonly property var barIdentity: hostWidget || root
-  readonly property var sourceModel: notificationService && "popupModel" in notificationService
-    ? notificationService.popupModel : null
-  readonly property bool serviceAvailable: sourceModel && typeof sourceModel.count === "number"
-    && typeof sourceModel.get === "function"
-  readonly property bool dnd: notificationService && notificationService.doNotDisturb === true
+  readonly property bool serviceAvailable: notificationService !== null && notificationService.loaded === true
+  readonly property bool dnd: false
   property int tab: 0 // 0 active/unread; 1 replayed history
   property string query: ""
   property int selectedIndex: 0
@@ -27,20 +24,26 @@ Panel {
   property var rows: []
 
   function refreshRows() {
-    rows = Logic.rowsFromModel(sourceModel, query)
+    rows = Logic.rowsFromEntries(notificationService ? notificationService.entries : [], query, tab === 0,
+      notificationService ? notificationService.lastSeen : 0)
     if (selectedIndex >= rows.length) selectedIndex = Math.max(0, rows.length - 1)
     if (rows.length === 0) selectedIndex = 0
     Qt.callLater(function() { if (rows.length > 0) list.positionViewAtIndex(selectedIndex, ListView.Contain) })
   }
   function open() { refreshRows(); controller.show() }
-  function close() { helpOpen = false; controller.hide() }
+  function close() {
+    // Keep the unread tab useful while the center is open; opening it is the
+    // acknowledgement point, so the next opening starts with fresh arrivals.
+    if (notificationService && typeof notificationService.markSeen === "function") notificationService.markSeen()
+    helpOpen = false
+    controller.hide()
+  }
   function toggle() { opened ? close() : open() }
   function setTab(value) {
     var next = value === 1 ? 1 : 0
     if (tab === next) return
     tab = next
     selectedIndex = 0
-    if (tab === 1 && notificationService && typeof notificationService.showRecentHistory === "function") notificationService.showRecentHistory()
     refreshRows()
   }
   function move(delta) {
@@ -49,14 +52,12 @@ Panel {
     list.positionViewAtIndex(selectedIndex, ListView.Contain)
   }
   function dismissSelected() {
-    if (!rows.length || !notificationService || typeof notificationService.dismissPopup !== "function") return
-    notificationService.dismissPopup(rows[selectedIndex].serviceIndex)
+    if (!rows.length || !notificationService || typeof notificationService.remove !== "function") return
+    notificationService.remove(rows[selectedIndex].key)
     refreshRows()
   }
   function activateSelected() {
-    if (!rows.length || !notificationService || typeof notificationService.invokePopupDefault !== "function") return
-    notificationService.invokePopupDefault(rows[selectedIndex].serviceIndex)
-    refreshRows()
+    // Archived snapshots intentionally do not replay sender-provided actions.
   }
   function toggleDnd() {
     if (notificationService && typeof notificationService.setDoNotDisturb === "function") notificationService.setDoNotDisturb(!dnd)
@@ -68,13 +69,13 @@ Panel {
   }
 
   onQueryChanged: refreshRows()
-  onSourceModelChanged: refreshRows()
+  onNotificationServiceChanged: refreshRows()
   onOpenedChanged: if (opened) Qt.callLater(function() { keyCatcher.forceActiveFocus(); refreshRows() })
 
   Connections {
-    target: root.sourceModel
-    function onCountChanged() { root.refreshRows() }
-    function onDataChanged() { root.refreshRows() }
+    target: root.notificationService
+    function onEntriesChanged() { root.refreshRows() }
+    function onLoadedChanged() { root.refreshRows() }
   }
 
   // Quattro 4.0.3 has KeyboardPanel for bar-attached popovers, but no drawer
@@ -229,9 +230,8 @@ Panel {
             anchors.centerIn: parent
             visible: !root.serviceAvailable || root.rows.length === 0
             spacing: Style.space(7)
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: !root.serviceAvailable ? "󰂚" : ""; color: Qt.darker(root.barForeground, 1.45); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.display }
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: !root.serviceAvailable ? "Notification service unavailable" : root.query ? "No notifications match your search" : root.tab === 0 ? "No unread notifications" : "No recent notifications"; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body }
-            Text { visible: !root.serviceAvailable; anchors.horizontalCenter: parent.horizontalCenter; text: "Omarchy does not expose notification entries to third-party widgets."; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: ""; color: Qt.darker(root.barForeground, 1.45); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.display }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: !root.serviceAvailable ? "Loading notification archive…" : root.query ? "No notifications match your search" : root.tab === 0 ? "No unread notifications" : "No recent notifications"; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body }
           }
         }
 

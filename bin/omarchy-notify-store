@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Private, append-only archive for snapshots written by Omarchy's own daemon.
+set -euo pipefail
+umask 077
+
+state_home=${XDG_STATE_HOME:-"$HOME/.local/state"}
+source_root=${OMARCHY_NOTIFY_SOURCE:-"$state_home/omarchy/notifications"}
+archive_root=${OMARCHY_NOTIFY_ARCHIVE:-"$state_home/omarchy-notify"}
+archive="$archive_root/entries.jsonl"
+mkdir -p "$archive_root"
+touch "$archive"
+chmod 700 "$archive_root"; chmod 600 "$archive"
+
+known() { jq -e -s --arg key "$1" 'any(.[]; .key == $key)' "$archive" >/dev/null 2>&1; }
+
+copy_image() {
+  local source=${1#file://} key=$2 role=$3 destination="$archive_root/$key-$role"
+  [[ -f "$source" ]] || return
+  file --brief --mime-type -- "$source" 2>/dev/null | grep -q '^image/' || return
+  head -c 5242881 -- "$source" > "$destination.tmp" 2>/dev/null || { rm -f "$destination.tmp"; return; }
+  [[ $(stat -c%s -- "$destination.tmp") -le 5242880 ]] || { rm -f "$destination.tmp"; return; }
+  mv -f "$destination.tmp" "$destination"
+  printf 'file://%s' "$destination"
+}
+
+ingest() {
+  local path=$1 key app_icon image app_icon_copy image_copy row
+  [[ "$path" == *.json && -s "$path" ]] || return
+  jq -e . "$path" >/dev/null 2>&1 || return
+  key=$(basename "$path" .json)
+  known "$key" && return
+  app_icon=$(jq -r '.appIcon // ""' "$path")
+  image=$(jq -r '.image // ""' "$path")
+  app_icon_copy="$app_icon"; image_copy="$image"
+  [[ "$app_icon" == /* || "$app_icon" == file:///* ]] && app_icon_copy=$(copy_image "$app_icon" "$key" icon || true)
+  [[ "$image" == /* || "$image" == file:///* ]] && image_copy=$(copy_image "$image" "$key" image || true)
+  row=$(jq -c --arg key "$key" --arg icon "$app_icon_copy" --arg image "$image_copy" '{key:$key, app:(.app // ""), appIcon:$icon, summary:(.summary // ""), body:(.body // ""), image:$image, glyph:(.glyph // ""), urgency:(.urgency // 1), timestamp:(.timestamp // 0)}' "$path")
+  printf '%s\n' "$row" >> "$archive"
+  printf '%s\n' "$row"
+}
+
+sync() {
+  local path
+  while IFS= read -r -d '' path; do ingest "$path"; done < <(find "$source_root" -maxdepth 2 -type f -name '*.json' -print0 2>/dev/null)
+}
+
+case "${1:-}" in
+  watch)
+    sync
+    inotifywait -m -q -e close_write,moved_to --format '%w%f' "$source_root" "$source_root/history" 2>/dev/null | while IFS= read -r path; do ingest "$path"; done
+    ;;
+  list) jq -s 'sort_by(.timestamp) | reverse' "$archive" ;;
+  remove)
+    jq -cs --arg key "${2:?key}" 'map(select(.key != $key))[]' "$archive" > "$archive.tmp"; mv -f "$archive.tmp" "$archive"
+    ;;
+  clear) : > "$archive" ;;
+  *) echo "usage: $0 {watch|list|remove|clear}" >&2; exit 2 ;;
+esac

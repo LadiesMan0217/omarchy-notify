@@ -69,3 +69,20 @@ function rowsFromModel(model, query) {
   }
   return rows
 }
+
+function rowsFromEntries(entries, query, unreadOnly, lastSeen) {
+  var rows = []
+  if (!Array.isArray(entries)) return rows
+  for (var i = 0; i < entries.length; ++i) {
+    var source = entries[i]
+    if (!source || !matches(source, query)) continue
+    if (unreadOnly && Number(source.timestamp || 0) <= Number(lastSeen || 0)) continue
+    rows.push({
+      key: text(source.key), app: text(source.app), appIcon: text(source.appIcon),
+      summary: text(source.summary), body: plainBody(source.body), image: text(source.image),
+      urgency: Number(source.urgency || 0), timestamp: Number(source.timestamp || 0),
+      relativeTime: relativeTime(source.timestamp), hasDefaultAction: false
+    })
+  }
+  return rows
+}
