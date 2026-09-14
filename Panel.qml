@@ -17,7 +17,6 @@ Panel {
   readonly property var barIdentity: hostWidget || root
   readonly property bool serviceAvailable: notificationService !== null && notificationService.loaded === true
   readonly property bool dnd: false
-  property int tab: 0 // 0 = não lidas; 1 = histórico
   property string query: ""
   property bool searchMode: false
   property int selectedIndex: 0
@@ -25,7 +24,7 @@ Panel {
   property var rows: []
 
   function refreshRows() {
-    rows = Logic.rowsFromEntries(notificationService ? notificationService.entries : [], query, tab === 0,
+    rows = Logic.rowsFromEntries(notificationService ? notificationService.entries : [], query, false,
       notificationService ? notificationService.lastSeen : 0)
     if (selectedIndex >= rows.length) selectedIndex = Math.max(0, rows.length - 1)
     if (rows.length === 0) selectedIndex = 0
@@ -46,13 +45,6 @@ Panel {
     controller.hide()
   }
   function toggle() { opened ? close() : open() }
-  function setTab(value) {
-    var next = value === 1 ? 1 : 0
-    if (tab === next) return
-    tab = next
-    selectedIndex = 0
-    refreshRows()
-  }
   function move(delta) {
     if (rows.length === 0) return
     selectedIndex = Math.max(0, Math.min(rows.length - 1, selectedIndex + delta))
@@ -133,11 +125,11 @@ Panel {
       anchors.fill: parent
       anchors.margins: Style.spacing.popupPadding
       blocked: root.searchMode
-      onMoveRequested: function(dx, dy) { if (dy) root.move(dy); else if (dx) root.setTab(root.tab + dx) }
+      onMoveRequested: function(dx, dy) { if (dy) root.move(dy) }
       onActivateRequested: root.activateSelected()
       onDeleteRequested: root.dismissSelected()
       onCloseRequested: root.handleEscape()
-      onTabRequested: function(direction) { root.setTab(root.tab + direction) }
+      onTabRequested: function(direction) {}
       onTextKey: function(t) {
         if (t === "g") { root.selectedIndex = 0; list.positionViewAtBeginning() }
         else if (t === "G") { root.selectedIndex = Math.max(0, root.rows.length - 1); list.positionViewAtEnd() }
@@ -174,26 +166,6 @@ Panel {
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           onTextEdited: root.query = text
           Keys.onPressed: function(event) { if (event.key === Qt.Key_Escape) { root.exitSearch(); event.accepted = true } }
-        }
-
-        RowLayout {
-          Layout.fillWidth: true
-          Repeater {
-            model: ["Unread", "History"]
-            delegate: Text {
-              required property string modelData
-              required property int index
-              text: modelData
-              color: root.tab === index ? root.barForeground : Qt.darker(root.barForeground, 1.55)
-              font.family: root.bar ? root.bar.fontFamily : Style.font.family
-              font.pixelSize: Style.font.body
-              font.bold: root.tab === index
-              MouseArea { anchors.fill: parent; anchors.margins: -Style.space(5); onClicked: root.setTab(index) }
-            }
-          }
-          Item { Layout.fillWidth: true }
-          Text { text: root.dnd ? "DND ON" : "DND OFF"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall
-            MouseArea { anchors.fill: parent; anchors.margins: -Style.space(4); onClicked: root.toggleDnd() } }
         }
 
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Qt.darker(root.barForeground, 1.8) }
@@ -247,11 +219,11 @@ Panel {
             visible: !root.serviceAvailable || root.rows.length === 0
             spacing: Style.space(7)
             Text { anchors.horizontalCenter: parent.horizontalCenter; text: ""; color: Qt.darker(root.barForeground, 1.45); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.display }
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: !root.serviceAvailable ? "Loading notification archive…" : root.query ? "No notifications match your search" : root.tab === 0 ? "No unread notifications" : "No recent notifications"; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: !root.serviceAvailable ? "Loading notification archive…" : root.query ? "No notifications match your search" : "No notifications"; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body }
           }
         }
 
-        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · Enter open · d/x dismiss · / search · Tab or h/l tabs · D DND · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · d/x dismiss · / search · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
         Text { Layout.fillWidth: true; text: "j/k move · x dismiss · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
       }
       }
