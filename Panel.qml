@@ -62,7 +62,7 @@ Panel {
     if (notificationService && typeof notificationService.setDoNotDisturb === "function") notificationService.setDoNotDisturb(!dnd)
   }
   function focusSearch() { search.forceActiveFocus(); search.selectAll() }
-  function escape() {
+  function handleEscape() {
     if (search.activeFocus) { query = ""; keyCatcher.forceActiveFocus() }
     else close()
   }
@@ -120,7 +120,7 @@ Panel {
       onMoveRequested: function(dx, dy) { if (dy) root.move(dy); else if (dx) root.setTab(root.tab + dx) }
       onActivateRequested: root.activateSelected()
       onDeleteRequested: root.dismissSelected()
-      onCloseRequested: root.escape()
+      onCloseRequested: root.handleEscape()
       onTabRequested: function(direction) { root.setTab(root.tab + direction) }
       onTextKey: function(t) {
         if (t === "g") { root.selectedIndex = 0; list.positionViewAtBeginning() }
@@ -155,7 +155,7 @@ Panel {
           foreground: root.barForeground
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           onTextEdited: root.query = text
-          Keys.onPressed: function(event) { if (event.key === Qt.Key_Escape) { root.escape(); event.accepted = true } }
+          Keys.onPressed: function(event) { if (event.key === Qt.Key_Escape) { root.handleEscape(); event.accepted = true } }
         }
 
         RowLayout {
