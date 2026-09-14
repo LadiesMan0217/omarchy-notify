@@ -162,7 +162,7 @@ Panel {
           Layout.fillWidth: true
           Text { text: "NOTIFICATIONS"; color: root.barForeground; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.title; font.bold: true; font.letterSpacing: 1 }
           Item { Layout.fillWidth: true }
-          Text { text: "clear"; color: Qt.darker(root.barForeground, 1.45); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall
+          Text { text: "clear all"; color: Qt.darker(root.barForeground, 1.45); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall
             MouseArea { anchors.fill: parent; anchors.margins: -Style.space(4); onClicked: root.clearAll() } }
           Text { text: root.rows.length; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body }
           Text { text: root.dnd ? "DND" : ""; color: root.dnd ? Color.accent : "transparent"; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
@@ -238,8 +238,8 @@ Panel {
           }
         }
 
-        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · d/x dismiss · C clear · / search · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
-        Text { Layout.fillWidth: true; text: "j/k move · x dismiss · C clear · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · d/x dismiss · C clear all · / search · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; text: "j/k move · x dismiss · C clear all · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
       }
       }
     }
