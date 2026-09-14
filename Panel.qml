@@ -96,13 +96,14 @@ Panel {
       bottom: true
       right: true
     }
-    anchors.topMargin: root.bar && root.bar.position === "top" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
-    anchors.bottomMargin: root.bar && root.bar.position === "bottom" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
 
     BorderSurface {
       id: drawer
       width: panel.width
-      height: panel.height
+      readonly property int topInset: root.bar && root.bar.position === "top" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
+      readonly property int bottomInset: root.bar && root.bar.position === "bottom" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
+      y: topInset
+      height: Math.max(1, panel.height - topInset - bottomInset)
       x: root.opened ? 0 : panel.width
       color: Color.popups.background
       borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(1)))
