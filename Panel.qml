@@ -136,7 +136,7 @@ Panel {
 
       ColumnLayout {
         id: content
-        width: parent.width
+        anchors.fill: parent
         spacing: Style.space(10)
 
         RowLayout {
