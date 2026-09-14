@@ -254,7 +254,7 @@ Panel {
         }
 
         Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · Enter open · d/x dismiss · / search · Tab or h/l tabs · D DND · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
-        Text { Layout.fillWidth: true; text: "j/k move · Enter open · x dismiss · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; text: "j/k move · x dismiss · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
       }
       }
     }
