@@ -55,6 +55,11 @@ Panel {
     notificationService.remove(rows[selectedIndex].key)
     refreshRows()
   }
+  function clearAll() {
+    if (!notificationService || typeof notificationService.clear !== "function") return
+    notificationService.clear()
+    refreshRows()
+  }
   function activateSelected() {
     // Snapshot não executa ação enviada pelo aplicativo.
   }
@@ -90,7 +95,6 @@ Panel {
   PanelWindow {
     id: panel
     screen: root.anchorItem ? root.anchorItem.QsWindow.window.screen : null
-    implicitWidth: Math.min(Style.space(440), screen ? screen.width : Style.space(440))
     visible: root.opened || drawer.x < width
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
@@ -101,17 +105,23 @@ Panel {
     anchors {
       top: true
       bottom: true
+      left: true
       right: true
+    }
+
+    MouseArea {
+      anchors.fill: parent
+      onClicked: root.close()
     }
 
     BorderSurface {
       id: drawer
-      width: panel.width
+      width: Math.min(Style.space(440), panel.width)
       readonly property int topInset: root.bar && root.bar.position === "top" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
       readonly property int bottomInset: root.bar && root.bar.position === "bottom" ? root.bar.barSize + Style.gapsOut : Style.gapsOut
       y: topInset
       height: Math.max(1, panel.height - topInset - bottomInset)
-      x: root.opened ? 0 : panel.width
+      x: root.opened ? panel.width - width : panel.width
       color: Color.popups.background
       borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(1)))
       radius: Style.cornerRadius
@@ -119,6 +129,8 @@ Panel {
       Behavior on x {
         NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
       }
+
+      MouseArea { anchors.fill: parent; onClicked: {} }
 
       PanelKeyCatcher {
       id: keyCatcher
@@ -135,6 +147,7 @@ Panel {
         else if (t === "G") { root.selectedIndex = Math.max(0, root.rows.length - 1); list.positionViewAtEnd() }
         else if (t === "d") root.dismissSelected()
         else if (t === "x") root.dismissSelected()
+        else if (t === "C") root.clearAll()
         else if (t === "/") root.focusSearch()
         else if (t === "D") root.toggleDnd()
         else if (t === "?") root.helpOpen = !root.helpOpen
@@ -149,6 +162,8 @@ Panel {
           Layout.fillWidth: true
           Text { text: "NOTIFICATIONS"; color: root.barForeground; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.title; font.bold: true; font.letterSpacing: 1 }
           Item { Layout.fillWidth: true }
+          Text { text: "clear"; color: Qt.darker(root.barForeground, 1.45); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall
+            MouseArea { anchors.fill: parent; anchors.margins: -Style.space(4); onClicked: root.clearAll() } }
           Text { text: root.rows.length; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body }
           Text { text: root.dnd ? "DND" : ""; color: root.dnd ? Color.accent : "transparent"; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
           Text { text: "×"; color: root.barForeground; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.title
@@ -223,8 +238,8 @@ Panel {
           }
         }
 
-        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · d/x dismiss · / search · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
-        Text { Layout.fillWidth: true; text: "j/k move · x dismiss · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · d/x dismiss · C clear · / search · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; text: "j/k move · x dismiss · C clear · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
       }
       }
     }

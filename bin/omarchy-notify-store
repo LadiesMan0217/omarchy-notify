@@ -7,11 +7,18 @@ state_home=${XDG_STATE_HOME:-"$HOME/.local/state"}
 source_root=${OMARCHY_NOTIFY_SOURCE:-"$state_home/omarchy/notifications"}
 archive_root=${OMARCHY_NOTIFY_ARCHIVE:-"$state_home/omarchy-notify"}
 archive="$archive_root/entries.jsonl"
+dismissed="$archive_root/dismissed.json"
 mkdir -p "$archive_root"
 touch "$archive"
-chmod 700 "$archive_root"; chmod 600 "$archive"
+[[ -f "$dismissed" ]] || printf '[]\n' > "$dismissed"
+chmod 700 "$archive_root"; chmod 600 "$archive" "$dismissed"
 
-known() { jq -e -s --arg key "$1" 'any(.[]; .key == $key)' "$archive" >/dev/null 2>&1; }
+was_dismissed() { jq -e --arg key "$1" 'index($key) != null' "$dismissed" >/dev/null 2>&1; }
+known() { was_dismissed "$1" || jq -e -s --arg key "$1" 'any(.[]; .key == $key)' "$archive" >/dev/null 2>&1; }
+remember_dismissed() {
+  jq -c --arg key "$1" 'if index($key) == null then . + [$key] else . end' "$dismissed" > "$dismissed.tmp"
+  mv -f "$dismissed.tmp" "$dismissed"
+}
 
 copy_image() {
   local source=${1#file://} key=$2 role=$3 destination="$archive_root/$key-$role"
@@ -51,8 +58,14 @@ case "${1:-}" in
     ;;
   list) jq -s 'sort_by(.timestamp) | reverse' "$archive" ;;
   remove)
-    jq -cs --arg key "${2:?key}" 'map(select(.key != $key))[]' "$archive" > "$archive.tmp"; mv -f "$archive.tmp" "$archive"
+    key=${2:?key}
+    remember_dismissed "$key"
+    jq -cs --arg key "$key" 'map(select(.key != $key))[]' "$archive" > "$archive.tmp"; mv -f "$archive.tmp" "$archive"
     ;;
-  clear) : > "$archive" ;;
+  clear)
+    sync
+    jq -s '[.[].key]' "$archive" > "$dismissed.tmp"; mv -f "$dismissed.tmp" "$dismissed"
+    : > "$archive"
+    ;;
   *) echo "usage: $0 {watch|list|remove|clear}" >&2; exit 2 ;;
 esac
