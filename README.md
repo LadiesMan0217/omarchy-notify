@@ -1,10 +1,20 @@
 # Omarchy Notify
 
+[Leia em português](README.pt-BR.md)
+
 ![Omarchy Notify drawer preview](preview.png)
 
-Omarchy Notify is a minimal, keyboard-first notification drawer for the Omarchy Quattro shell. It slides in from the right, keeps the desktop visible, and follows the active Omarchy theme.
+Omarchy Notify is a keyboard-first notification center for Omarchy Quattro, with mouse support if you want it. Only if you really want it.
 
-Omarchy remains the notification daemon. Omarchy 4.0.3 does not expose notification entries to ordinary third-party widgets, so this plugin reads the local snapshots that the built-in daemon already writes and keeps its own private archive. It does not replace the daemon or modify Omarchy's notification state.
+Suggested global hotkey: `SUPER + ALT + N`.
+
+## How it works
+
+The drawer is anchored to the right edge of the screen and slides left into view. The desktop remains visible beside it: this is a shell surface, not a centered modal.
+
+Close it with `Esc`, the `×` button, the bell again, or a click anywhere outside the drawer.
+
+Omarchy remains the notification daemon. Omarchy 4.0.3 does not expose notification entries to ordinary third-party widgets, so Omarchy Notify reads the local snapshots that the built-in daemon already writes and keeps a private archive. It does not replace the daemon or modify Omarchy's notification state.
 
 ## Features
 
@@ -37,6 +47,12 @@ omarchy plugin add "$(pwd)" --enable
 ```
 
 The plugin ID is `caio.omarchy-notify`; its default bar section is `right`.
+
+## Uninstall
+
+```sh
+omarchy plugin remove caio.omarchy-notify
+```
 
 ## Usage
 

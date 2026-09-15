@@ -1,10 +1,20 @@
 # Omarchy Notify
 
+[Read in English](README.md)
+
 ![Preview da gaveta Omarchy Notify](preview.png)
 
-Central de notificações minimalista e keyboard-first para o shell Quattro do Omarchy. Ela desliza pela direita, mantém o desktop visível e usa automaticamente o tema ativo do Omarchy.
+Uma central de notificações keyboard-first para o Omarchy Quattro, com mouse funcionando se você quiser usar. Só se quiser mesmo!
 
-O Omarchy continua sendo o daemon de notificações. No Omarchy 4.0.3, widgets de terceiros não recebem entradas de notificação pela API pública; por isso, este plugin lê os snapshots locais que o daemon nativo já grava e mantém um arquivo privado. Ele não substitui o daemon nem altera o estado de notificações do Omarchy.
+Atalho global sugerido: `SUPER + ALT + N`.
+
+## Como funciona
+
+A gaveta fica ancorada na borda direita da tela e desliza para a esquerda ao abrir. O desktop continua visível ao lado: isto é uma superfície do shell, não um modal centralizado.
+
+Para fechar, use `Esc`, o botão `×`, o sino novamente ou clique em qualquer lugar fora da gaveta.
+
+O Omarchy continua sendo o daemon de notificações. No Omarchy 4.0.3, widgets de terceiros não recebem entradas de notificação pela API pública; por isso, o Omarchy Notify lê os snapshots locais que o daemon nativo já grava e mantém um arquivo privado. Ele não substitui o daemon nem altera o estado de notificações do Omarchy.
 
 ## Recursos
 
@@ -37,6 +47,12 @@ omarchy plugin add "$(pwd)" --enable
 ```
 
 ID: `caio.omarchy-notify`. A seção padrão da barra é `right`.
+
+## Desinstalação
+
+```sh
+omarchy plugin remove caio.omarchy-notify
+```
 
 ## Uso e atalhos
 
