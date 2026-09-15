@@ -22,10 +22,10 @@ Omarchy remains the notification daemon. Omarchy 4.0.3 does not expose notificat
 
 ## Install
 
-After publishing, install from the repository URL:
+Install from the repository URL:
 
 ```sh
-omarchy plugin add <REPOSITORY_URL> --enable
+omarchy plugin add https://github.com/LadiesMan0217/omarchy-notify.git --enable
 ```
 
 To install this checkout:

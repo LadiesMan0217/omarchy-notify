@@ -22,10 +22,10 @@ O Omarchy continua sendo o daemon de notificações. No Omarchy 4.0.3, widgets d
 
 ## Instalação
 
-Quando o repositório estiver publicado:
+Instale pelo repositório público:
 
 ```sh
-omarchy plugin add <REPOSITORY_URL> --enable
+omarchy plugin add https://github.com/LadiesMan0217/omarchy-notify.git --enable
 ```
 
 Para instalar este checkout:
