@@ -61,7 +61,11 @@ Panel {
     refreshRows()
   }
   function activateSelected() {
-    // Snapshot não executa ação enviada pelo aplicativo.
+    if (selectedIndex < 0 || selectedIndex >= rows.length) return
+    var row = rows[selectedIndex]
+    if (row && row.linkUrl) {
+      Qt.openUrlExternally(row.linkUrl)
+    }
   }
   function toggleDnd() {
     if (notificationService && typeof notificationService.setDoNotDisturb === "function") notificationService.setDoNotDisturb(!dnd)
@@ -204,7 +208,16 @@ Panel {
               color: root.selectedIndex === index ? Style.hoverFillFor(root.barForeground, Color.accent) : "transparent"
               border.width: root.selectedIndex === index ? 1 : 0
               border.color: Qt.darker(root.barForeground, 1.5)
-              MouseArea { anchors.fill: parent; hoverEnabled: true; onEntered: root.selectedIndex = index; onClicked: root.activateSelected() }
+              MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: modelData.linkUrl ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onEntered: root.selectedIndex = index
+                onClicked: {
+                  root.selectedIndex = index
+                  root.activateSelected()
+                }
+              }
               Column {
                 id: card
                 anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -223,6 +236,7 @@ Panel {
                   Text { visible: !Logic.localImageSource(modelData.image); text: modelData.appIcon ? "●" : ""; color: Color.accent; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
                   Text { text: modelData.app || "Notification"; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
                   Text { text: "  " + modelData.relativeTime; color: Qt.darker(root.barForeground, 1.55); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
+                  Text { visible: !!modelData.linkUrl; text: " ↗"; color: root.selectedIndex === index ? root.barForeground : Qt.darker(root.barForeground, 1.45); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
                 }
                 Text { width: parent.width; text: modelData.summary; elide: Text.ElideRight; color: root.barForeground; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body; font.bold: true; textFormat: Text.PlainText }
                 Text { visible: modelData.body.length > 0; width: parent.width; text: modelData.body; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
@@ -238,8 +252,8 @@ Panel {
           }
         }
 
-        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "j/k or ↑/↓ move · g/G first/last · d/x dismiss · C clear all · / search · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
-        Text { Layout.fillWidth: true; text: "j/k move · x dismiss · C clear all · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; visible: root.helpOpen; wrapMode: Text.Wrap; text: "Enter open · j/k or ↑/↓ move · g/G first/last · d/x dismiss · C clear all · / search · Esc close"; color: Qt.darker(root.barForeground, 1.4); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { Layout.fillWidth: true; text: "Enter open · j/k move · x dismiss · C clear all · / search · ? help · Esc close"; color: Qt.darker(root.barForeground, 1.65); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
       }
       }
     }
