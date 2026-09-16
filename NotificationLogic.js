@@ -7,15 +7,10 @@ function text(value) {
 }
 
 function plainBody(value) {
-  // Corpo de notificação entra como texto, nunca como HTML.
-  return text(value)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/\s+/g, " ")
-    .trim()
+  // Normaliza apenas espaços em branco.
+  // A barreira real contra rich text é textFormat: Text.PlainText nos
+  // componentes Text do Panel.qml — não transformações via regex.
+  return text(value).replace(/\s+/g, " ").trim()
 }
 
 function searchable(row) {

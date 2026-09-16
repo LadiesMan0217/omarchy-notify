@@ -2,26 +2,149 @@
 # Private, append-only archive for snapshots written by Omarchy's own daemon.
 set -euo pipefail
 umask 077
+export LC_ALL=C
+
+# ── Política de retenção ─────────────────────────────────────────────────────
+# MAX_ENTRIES: número máximo de notificações retidas no histórico.
+# MAX_ARCHIVE_BYTES: orçamento máximo do arquivo em disco (2 MiB).
+# MAX_FIELD_CHARS: truncamento em codepoints Unicode na ingestão (jq .[0:N]).
+# MAX_DISMISSED: limite de ações explícitas de descarte do usuário.
+MAX_ENTRIES=500
+MAX_ARCHIVE_BYTES=2097152
+MAX_FIELD_CHARS=2048
+MAX_DISMISSED=500
 
 state_home=${XDG_STATE_HOME:-"$HOME/.local/state"}
 source_root=${OMARCHY_NOTIFY_SOURCE:-"$state_home/omarchy/notifications"}
 archive_root=${OMARCHY_NOTIFY_ARCHIVE:-"$state_home/omarchy-notify"}
 archive="$archive_root/entries.jsonl"
 dismissed="$archive_root/dismissed.json"
+cutoff_file="$archive_root/retention_cutoff"
 mkdir -p "$archive_root"
 touch "$archive"
 [[ -f "$dismissed" ]] || printf '[]\n' > "$dismissed"
 chmod 700 "$archive_root"; chmod 600 "$archive" "$dismissed"
 
-was_dismissed() { jq -e --arg key "$1" 'index($key) != null' "$dismissed" >/dev/null 2>&1; }
-known() { was_dismissed "$1" || jq -e -s --arg key "$1" 'any(.[]; .key == $key)' "$archive" >/dev/null 2>&1; }
+# Carrega o watermark de retenção determinístico (timestamp e key)
+retention_cutoff_ts=0
+retention_cutoff_key=""
+if [[ -f "$cutoff_file" ]]; then
+  retention_cutoff_ts=$(jq -r '.timestamp // 0' "$cutoff_file" 2>/dev/null || echo 0)
+  retention_cutoff_key=$(jq -r '.key // ""' "$cutoff_file" 2>/dev/null || echo "")
+fi
+
+# ── Verificações de estado ────────────────────────────────────────────────────
+
+was_dismissed() {
+  grep -qF '"'"$1"'"' "$dismissed" 2>/dev/null
+}
+
+# Registra descarte explícito pelo usuário com limite de MAX_DISMISSED entradas
 remember_dismissed() {
-  jq -c --arg key "$1" 'if index($key) == null then . + [$key] else . end' "$dismissed" > "$dismissed.tmp"
-  mv -f "$dismissed.tmp" "$dismissed"
+  jq -c --arg key "$1" --argjson max "$MAX_DISMISSED" \
+    'if index($key) == null
+     then (. + [$key] | if length > $max then .[-($max):] else . end)
+     else . end' \
+    "$dismissed" > "$dismissed.tmp" && mv -f "$dismissed.tmp" "$dismissed"
+}
+
+# Comparação determinística contra a fronteira de retenção
+is_below_cutoff() {
+  local key=$1 ts=${2:-0}
+  [[ -f "$cutoff_file" ]] || return 1
+  (( ts < retention_cutoff_ts )) && return 0
+  if (( ts == retention_cutoff_ts )); then
+    [[ "$key" < "$retention_cutoff_key" ]] && return 0
+  fi
+  return 1
+}
+
+known() {
+  local key=$1 ts=${2:-0}
+  was_dismissed "$key" && return 0
+  is_below_cutoff "$key" "$ts" && return 0
+  grep -qF '"key":"'"$key"'"' "$archive" 2>/dev/null
+}
+
+# Remove imagens em archive_root cujas chaves não existem mais no archive
+cleanup_images() {
+  local f base key_part
+  local -A active_keys=()
+  while IFS= read -r k; do
+    [[ -n "$k" ]] && active_keys["$k"]=1
+  done < <(jq -Rrc 'fromjson? | select(type == "object") | .key // empty' "$archive" 2>/dev/null || true)
+
+  for f in "$archive_root"/*-icon "$archive_root"/*-image; do
+    [[ -f "$f" ]] || continue
+    base=$(basename "$f")
+    key_part="${base%-*}"
+    [[ -z "${active_keys[$key_part]+x}" ]] && rm -f -- "$f"
+  done
+}
+
+# Poda de histórico: estritamente streaming, sem carregar o arquivo na RAM
+prune() {
+  local size count
+  size=$(stat -c%s "$archive" 2>/dev/null || echo 0)
+  if (( size <= MAX_ARCHIVE_BYTES )); then
+    count=$(wc -l < "$archive" 2>/dev/null || echo 0)
+    (( count <= MAX_ENTRIES )) && return
+  fi
+
+  local tmp_sort tmp_desc tmp_asc oldest_kept new_cutoff ksize lcount
+  tmp_sort=$(mktemp -p "$archive_root")
+  tmp_desc=$(mktemp -p "$archive_root")
+  tmp_asc=$(mktemp -p "$archive_root")
+
+  # Extração linha a linha: descarta linhas corrompidas e linhas > MAX_ARCHIVE_BYTES
+  jq -Rrc --argjson maxb "$MAX_ARCHIVE_BYTES" '
+    select(utf8bytelength <= $maxb)
+    | fromjson?
+    | select(type == "object")
+    | "\(.timestamp // 0)\t\(.key // "")\t\(. | @json)"
+  ' "$archive" > "$tmp_sort" 2>/dev/null || true
+
+  # Ordenação externa com limites de memória (-S 4M) e diretório de temp (-T)
+  # -k1,1rn: timestamp decrescente; -k2,2r: desempate por key decrescente
+  # set +o pipefail protege contra SIGPIPE (141) quando head fecha o pipe
+  set +o pipefail
+  sort -S 4M -T "$archive_root" -t$'\t' -k1,1rn -k2,2r "$tmp_sort" \
+    | head -n "$MAX_ENTRIES" \
+    | cut -d$'\t' -f3- \
+    > "$tmp_desc"
+  set -o pipefail
+  rm -f "$tmp_sort"
+
+  # Aplica orçamento de bytes: remove entradas mais antigas (últimas linhas desc)
+  ksize=$(stat -c%s "$tmp_desc" 2>/dev/null || echo 0)
+  while (( ksize > MAX_ARCHIVE_BYTES )); do
+    lcount=$(wc -l < "$tmp_desc" 2>/dev/null || echo 0)
+    if (( lcount <= 0 )); then : > "$tmp_desc"; break; fi
+    head -n -1 "$tmp_desc" > "$tmp_desc.2" && mv -f "$tmp_desc.2" "$tmp_desc" || { : > "$tmp_desc"; break; }
+    ksize=$(stat -c%s "$tmp_desc" 2>/dev/null || echo 0)
+  done
+
+  # Atualiza watermark na menor entrada retida (última linha desc)
+  if [[ -s "$tmp_desc" ]]; then
+    oldest_kept=$(tail -n 1 "$tmp_desc")
+    new_cutoff=$(printf '%s' "$oldest_kept" | jq -c '{timestamp: (.timestamp // 0), key: (.key // "")}')
+    printf '%s\n' "$new_cutoff" > "$cutoff_file"
+    chmod 600 "$cutoff_file" 2>/dev/null || true
+    retention_cutoff_ts=$(printf '%s' "$new_cutoff" | jq -r '.timestamp')
+    retention_cutoff_key=$(printf '%s' "$new_cutoff" | jq -r '.key')
+  fi
+
+  # Inverte para ordem crescente cronológica (append-friendly) e substitui atomicamente
+  tac "$tmp_desc" > "$tmp_asc"
+  rm -f "$tmp_desc"
+  mv -f "$tmp_asc" "$archive"
+
+  cleanup_images
 }
 
 copy_image() {
-  local source=${1#file://} key=$2 role=$3 destination="$archive_root/$key-$role"
+  local source=${1#file://} key=$2 role=$3
+  local destination="$archive_root/$key-$role"
   [[ -f "$source" ]] || return
   file --brief --mime-type -- "$source" 2>/dev/null | grep -q '^image/' || return
   head -c 5242881 -- "$source" > "$destination.tmp" 2>/dev/null || { rm -f "$destination.tmp"; return; }
@@ -31,18 +154,31 @@ copy_image() {
 }
 
 ingest() {
-  local path=$1 key app_icon image app_icon_copy image_copy row
+  local path=$1 key ts app_icon image app_icon_copy image_copy row meta
   [[ "$path" == *.json && -s "$path" ]] || return
-  jq -e . "$path" >/dev/null 2>&1 || return
   key=$(basename "$path" .json)
-  known "$key" && return
-  app_icon=$(jq -r '.appIcon // ""' "$path")
-  image=$(jq -r '.image // ""' "$path")
+  meta=$(jq -r '[(.timestamp // 0), (.appIcon // ""), (.image // "")] | join("\u001f")' "$path" 2>/dev/null) || return
+  IFS=$'\x1f' read -r ts app_icon image <<< "$meta"
+  known "$key" "$ts" && return
   app_icon_copy="$app_icon"; image_copy="$image"
   [[ "$app_icon" == /* || "$app_icon" == file:///* ]] && app_icon_copy=$(copy_image "$app_icon" "$key" icon || true)
   [[ "$image" == /* || "$image" == file:///* ]] && image_copy=$(copy_image "$image" "$key" image || true)
-  row=$(jq -c --arg key "$key" --arg icon "$app_icon_copy" --arg image "$image_copy" '{key:$key, app:(.app // ""), appIcon:$icon, summary:(.summary // ""), body:(.body // ""), image:$image, glyph:(.glyph // ""), urgency:(.urgency // 1), timestamp:(.timestamp // 0)}' "$path")
+  row=$(jq -c \
+    --arg  key  "$key"           \
+    --arg  icon "$app_icon_copy" \
+    --arg  img  "$image_copy"    \
+    --argjson mc "$MAX_FIELD_CHARS" \
+    '{key:      $key,
+      app:      (.app     // "" | .[0:$mc]),
+      appIcon:  $icon,
+      summary:  (.summary // "" | .[0:$mc]),
+      body:     (.body    // "" | .[0:$mc]),
+      image:    $img,
+      glyph:    (.glyph   // "" | .[0:$mc]),
+      urgency:  (.urgency  // 1),
+      timestamp:(.timestamp // 0)}' "$path")
   printf '%s\n' "$row" >> "$archive"
+  prune
   printf '%s\n' "$row"
 }
 
@@ -51,21 +187,55 @@ sync() {
   while IFS= read -r -d '' path; do ingest "$path"; done < <(find "$source_root" -maxdepth 2 -type f -name '*.json' -print0 2>/dev/null)
 }
 
+# ── Comandos ──────────────────────────────────────────────────────────────────
+
 case "${1:-}" in
   watch)
+    prune
     sync
-    inotifywait -m -q -e close_write,moved_to --format '%w%f' "$source_root" "$source_root/history" 2>/dev/null | while IFS= read -r path; do ingest "$path"; done
+    watch_dirs=("$source_root")
+    [[ -d "$source_root/history" ]] && watch_dirs+=("$source_root/history")
+    inotifywait -m -q -e close_write,moved_to --format '%w%f' "${watch_dirs[@]}" 2>/dev/null | while IFS= read -r path; do ingest "$path"; done
     ;;
-  list) jq -s 'sort_by(.timestamp) | reverse' "$archive" ;;
+
+  list)
+    # Entrada e saída estritamente limitadas em bytes (MAX_ARCHIVE_BYTES) e registros (MAX_ENTRIES).
+    # Se archive > 2 MiB, lê apenas a cauda de 2 MiB e descarta a primeira linha (possivelmente parcial).
+    set +o pipefail
+    if (( $(stat -c%s "$archive" 2>/dev/null || echo 0) > MAX_ARCHIVE_BYTES )); then
+      tail -c "$MAX_ARCHIVE_BYTES" "$archive" | sed '1d'
+    else
+      cat "$archive"
+    fi | tail -n "$MAX_ENTRIES" \
+       | jq -Rrc --argjson maxb "$MAX_ARCHIVE_BYTES" 'select(utf8bytelength <= $maxb) | fromjson? | select(type == "object")' \
+       | jq -c -s --argjson max "$MAX_ENTRIES" 'sort_by(.timestamp // 0) | reverse | .[0:$max]'
+    set -o pipefail
+    ;;
+
   remove)
     key=${2:?key}
     remember_dismissed "$key"
-    jq -cs --arg key "$key" 'map(select(.key != $key))[]' "$archive" > "$archive.tmp"; mv -f "$archive.tmp" "$archive"
+    jq -Rrc --arg key "$key" 'fromjson? | select(type == "object" and .key != $key)' "$archive" > "$archive.tmp"
+    mv -f "$archive.tmp" "$archive"
+    rm -f -- "$archive_root/$key-icon" "$archive_root/$key-image"
     ;;
+
   clear)
     sync
-    jq -s '[.[].key]' "$archive" > "$dismissed.tmp"; mv -f "$dismissed.tmp" "$dismissed"
+    max_row=$(tail -n 1 "$archive" 2>/dev/null || true)
+    if [[ -n "$max_row" ]]; then
+      max_ts=$(printf '%s' "$max_row" | jq -r '.timestamp // 0' 2>/dev/null || echo 0)
+      if [[ "$max_ts" =~ ^[0-9]+$ ]]; then
+        clear_cutoff=$(jq -c -n --argjson ts "$(( max_ts + 1 ))" '{timestamp: $ts, key: ""}')
+        printf '%s\n' "$clear_cutoff" > "$cutoff_file"
+        chmod 600 "$cutoff_file" 2>/dev/null || true
+        retention_cutoff_ts=$(( max_ts + 1 ))
+        retention_cutoff_key=""
+      fi
+    fi
+    find "$archive_root" -maxdepth 1 -type f \( -name '*-icon' -o -name '*-image' \) -delete 2>/dev/null || true
     : > "$archive"
     ;;
+
   *) echo "usage: $0 {watch|list|remove|clear}" >&2; exit 2 ;;
 esac

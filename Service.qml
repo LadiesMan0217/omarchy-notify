@@ -5,6 +5,7 @@ import Quickshell.Io
 // Arquivo privado dos snapshots que o Omarchy já salvou. Não é outro daemon.
 Item {
   id: root
+  readonly property int cap: 500
   property var shell: null
   property string omarchyPath: ""
   property var entries: []
@@ -26,7 +27,8 @@ Item {
     var row
     try { row = JSON.parse(line) } catch (e) { return }
     if (!row || !row.key || has(row.key)) return
-    entries = [row].concat(entries)
+    var next = [row].concat(entries)
+    entries = next.length > cap ? next.slice(0, cap) : next
   }
   function markSeen() { lastSeen = Date.now() }
   function remove(key) {
@@ -52,7 +54,10 @@ Item {
       onStreamFinished: {
         try {
           var data = JSON.parse(text)
-          if (Array.isArray(data)) { root.entries = data; root.loaded = true }
+          if (Array.isArray(data)) {
+            root.entries = data.length > root.cap ? data.slice(0, root.cap) : data
+            root.loaded = true
+          }
         } catch (e) {}
       }
     }

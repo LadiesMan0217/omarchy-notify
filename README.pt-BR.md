@@ -109,6 +109,21 @@ omarchy-shell shell rescanPlugins
 notify-send "Omarchy Notify" "Teste"
 ```
 
+## Armazenamento e retenção
+
+O Omarchy Notify mantém uma janela limitada de notificações recentes para evitar crescimento ilimitado de disco e memória.
+
+| Limite | Valor | Descrição |
+| --- | --- | --- |
+| Máximo de notificações | 500 | Entradas antigas são podadas automaticamente após cada ingestão |
+| Tamanho máximo do arquivo | 2 MiB | Rede de segurança para o orçamento total em bytes no disco e memória |
+| Tamanho máximo por campo | 2 048 chars | Truncamento aplicado a `app`, `summary`, `body` e `glyph` na ingestão (contado em codepoints Unicode) |
+| Máximo de entradas descartadas | 500 | Descarte explícito pelo usuário; as mais antigas são removidas ao atingir o limite |
+
+Todos os limites se aplicam a `~/.local/state/omarchy-notify/entries.jsonl`.
+Imagens copiadas de notificações são removidas quando a entrada correspondente é podada, descartada ou limpa.
+A poda automática registra um watermark compacto de timestamp+chave para que notificações podadas nunca sejam reingeridas.
+
 ## Limitações reais
 
 - Clicar em uma notificação apenas seleciona. A API de terceiros inspecionada não expõe a ação padrão nem dados para abrir o aplicativo, então o plugin não tenta reproduzi-los.

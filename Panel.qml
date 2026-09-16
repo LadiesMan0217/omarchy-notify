@@ -220,12 +220,12 @@ Panel {
                     sourceSize.height: Math.round(height * 2)
                     fillMode: Image.PreserveAspectFit
                   }
-                  Text { visible: !Logic.localImageSource(modelData.image); text: modelData.appIcon ? "●" : ""; color: Color.accent; font.pixelSize: Style.font.bodySmall }
-                  Text { text: modelData.app || "Notification"; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
-                  Text { text: "  " + modelData.relativeTime; color: Qt.darker(root.barForeground, 1.55); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+                  Text { visible: !Logic.localImageSource(modelData.image); text: modelData.appIcon ? "●" : ""; color: Color.accent; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
+                  Text { text: modelData.app || "Notification"; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
+                  Text { text: "  " + modelData.relativeTime; color: Qt.darker(root.barForeground, 1.55); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
                 }
-                Text { width: parent.width; text: modelData.summary; elide: Text.ElideRight; color: root.barForeground; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
-                Text { visible: modelData.body.length > 0; width: parent.width; text: modelData.body; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall }
+                Text { width: parent.width; text: modelData.summary; elide: Text.ElideRight; color: root.barForeground; font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.body; font.bold: true; textFormat: Text.PlainText }
+                Text { visible: modelData.body.length > 0; width: parent.width; text: modelData.body; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; color: Qt.darker(root.barForeground, 1.35); font.family: root.bar ? root.bar.fontFamily : Style.font.family; font.pixelSize: Style.font.bodySmall; textFormat: Text.PlainText }
               }
             }
           }

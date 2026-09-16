@@ -123,6 +123,21 @@ NotificationLogic.js       filtering, sanitization, relative time
 bin/omarchy-notify-store   local archive and inotify watcher
 ```
 
+## Storage and retention
+
+Omarchy Notify keeps a bounded window of recent notifications to prevent unbounded disk and memory growth.
+
+| Limit | Value | Description |
+| --- | --- | --- |
+| Max notifications | 500 | Older entries are pruned automatically after each ingest |
+| Max archive size | 2 MiB | Safety net for total byte budget on disk and memory |
+| Max field size | 2 048 chars | Per-field cap on `app`, `summary`, `body`, and `glyph` at ingest time (counted in Unicode codepoints) |
+| Max dismissed entries | 500 | Explicit user dismissals; oldest are dropped when the limit is reached |
+
+All limits apply to `~/.local/state/omarchy-notify/entries.jsonl`.
+Images copied from notifications are removed when their parent entry is pruned, dismissed, or cleared.
+Automatic pruning tracks a compact timestamp+key watermark so entries removed by retention are never re-ingested.
+
 ## Limitations
 
 - Clicking a notification only selects it. The inspected third-party API does not expose default actions or application launch data, so this plugin does not replay them.
