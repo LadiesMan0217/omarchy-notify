@@ -249,7 +249,21 @@ Panel {
           foreground: root.barForeground
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           onTextEdited: root.query = text
-          Keys.onPressed: function(event) { if (event.key === Qt.Key_Escape) { root.exitSearch(); event.accepted = true } }
+          Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Down) {
+              root.move(1)
+              event.accepted = true
+            } else if (event.key === Qt.Key_Up) {
+              root.move(-1)
+              event.accepted = true
+            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+              root.activateSelected()
+              event.accepted = true
+            } else if (event.key === Qt.Key_Escape) {
+              root.exitSearch()
+              event.accepted = true
+            }
+          }
         }
 
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Qt.darker(root.barForeground, 1.8) }
