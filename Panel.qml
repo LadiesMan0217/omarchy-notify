@@ -14,6 +14,20 @@ Panel {
   property var anchorItem: null
   property var hostWidget: null
   property var notificationService: null
+  property var nativeNotificationService: null
+  readonly property var resolvedNativeService: {
+    if (nativeNotificationService) return nativeNotificationService
+    if (hostWidget && typeof hostWidget.resolveNativeNotificationService === "function") {
+      return hostWidget.resolveNativeNotificationService()
+    }
+    try {
+      if (bar && bar.shell && typeof bar.shell.serviceFor === "function") {
+        return bar.shell.serviceFor("omarchy.notifications")
+      }
+    } catch (e) {}
+    return null
+  }
+  readonly property string omarchyPath: Quickshell.env("OMARCHY_PATH") || "/usr/share/omarchy"
   readonly property var barIdentity: hostWidget || root
   readonly property bool serviceAvailable: notificationService !== null && notificationService.loaded === true
   readonly property bool dnd: false
@@ -62,10 +76,60 @@ Panel {
   }
   function activateSelected() {
     if (selectedIndex < 0 || selectedIndex >= rows.length) return
-    var row = rows[selectedIndex]
-    if (row && row.linkUrl) {
-      Qt.openUrlExternally(row.linkUrl)
+    activateNotification(rows[selectedIndex])
+  }
+  function activateByKey(key) {
+    if (!key) return false
+    var targetKey = String(key).trim()
+    if (!rows || rows.length === 0) refreshRows()
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] && rows[i].key === targetKey) {
+        selectedIndex = i
+        activateNotification(rows[i])
+        return true
+      }
     }
+    return false
+  }
+  function activateNotification(row) {
+    if (!row) return
+
+    var nativeService = root.resolvedNativeService
+    var liveIndex = -1
+
+    if (nativeService && nativeService.popupModel) {
+      liveIndex = Logic.findLivePopupIndex(nativeService.popupModel, row)
+    }
+
+    if (liveIndex >= 0 && nativeService && typeof nativeService.invokePopupDefault === "function") {
+      // Caso 1 — existe popup nativo vivo correspondente
+      nativeService.invokePopupDefault(liveIndex)
+      root.close()
+      return
+    }
+
+    // Caso 2 — não existe mais popup vivo. Fallback seguro para focar o aplicativo/janela existente
+    var appName = row.app ? String(row.app).trim() : ""
+    if (Logic.isWhatsAppUrl(row.linkUrl)) {
+      appName = "whatsapp"
+    }
+    if (appName.length > 0) {
+      Quickshell.execDetached([
+        root.omarchyPath + "/bin/omarchy-hyprland-focus-app",
+        appName
+      ])
+      root.close()
+      return
+    }
+
+    // Caso 3 — nenhum desses caminhos estiver disponível. Fallback para URL sanitizada (exceto WhatsApp)
+    if (row.linkUrl && !Logic.isWhatsAppUrl(row.linkUrl)) {
+      Qt.openUrlExternally(row.linkUrl)
+      root.close()
+      return
+    }
+
+    root.close()
   }
   function toggleDnd() {
     if (notificationService && typeof notificationService.setDoNotDisturb === "function") notificationService.setDoNotDisturb(!dnd)
@@ -211,7 +275,7 @@ Panel {
               MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: modelData.linkUrl ? Qt.PointingHandCursor : Qt.ArrowCursor
+                cursorShape: Qt.PointingHandCursor
                 onEntered: root.selectedIndex = index
                 onClicked: {
                   root.selectedIndex = index

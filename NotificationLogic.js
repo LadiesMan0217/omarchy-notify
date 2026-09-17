@@ -118,3 +118,33 @@ function rowsFromEntries(entries, query, unreadOnly, lastSeen) {
   }
   return rows
 }
+
+function isWhatsAppUrl(url) {
+  if (!url) return false
+  var lower = String(url).toLowerCase()
+  return lower.indexOf("web.whatsapp.com") !== -1 || lower.indexOf("whatsapp.com") !== -1 || lower.indexOf("wa.me") !== -1
+}
+
+function nativeKey(row) {
+  if (!row) return ""
+  var ts = row.timestamp !== undefined ? row.timestamp : 0
+  var id = row.originalId !== undefined ? row.originalId : (row.id !== undefined ? row.id : 0)
+  return String(ts) + "-" + String(id)
+}
+
+function findLivePopupIndex(popupModel, archiveEntry) {
+  if (!popupModel || typeof popupModel.count !== "number" || typeof popupModel.get !== "function") return -1
+  if (!archiveEntry || !archiveEntry.key) return -1
+  var targetKey = String(archiveEntry.key).trim()
+  if (!targetKey) return -1
+
+  for (var i = 0; i < popupModel.count; ++i) {
+    var liveRow = popupModel.get(i)
+    if (!liveRow) continue
+    if (nativeKey(liveRow) === targetKey) {
+      return i
+    }
+  }
+  return -1
+}
+
