@@ -64,12 +64,15 @@ omarchy plugin remove caio.omarchy-notify
 | --- | --- |
 | `j` / `↓` | Próxima notificação |
 | `k` / `↑` | Notificação anterior |
+| `Enter` | Abrir/ativar a notificação selecionada |
 | `g` / `G` | Primeira / última |
 | `x` / `d` | Remover a selecionada |
 | `Shift+C` | Limpar todas as notificações arquivadas |
 | `/` | Abrir e focar a busca |
 | `Esc` | Sair da busca; depois fechar a gaveta |
 | `?` | Mostrar ajuda de atalhos |
+
+Durante a busca, `↑`/`↓` navegam pelos resultados filtrados, `Enter` abre/ativa a notificação selecionada e `Esc` sai do modo de busca.
 
 ## IPC e atalho global
 

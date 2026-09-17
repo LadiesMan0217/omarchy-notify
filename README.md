@@ -64,12 +64,15 @@ omarchy plugin remove caio.omarchy-notify
 | --- | --- |
 | `j` / `↓` | Next notification |
 | `k` / `↑` | Previous notification |
+| `Enter` | Open/activate selected notification |
 | `g` / `G` | First / last notification |
 | `x` / `d` | Dismiss selected notification |
 | `Shift+C` | Clear all archived notifications |
 | `/` | Open and focus search mode |
 | `Esc` | Leave search mode, then close the drawer |
 | `?` | Show shortcut help |
+
+While search is active, `↑`/`↓` navigate filtered results, `Enter` activates the selected notification, and `Esc` leaves search mode.
 
 ## IPC and global hotkey
 
