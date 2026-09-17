@@ -45,6 +45,7 @@ Panel {
     Qt.callLater(function() { if (rows.length > 0) list.positionViewAtIndex(selectedIndex, ListView.Contain) })
   }
   function open() {
+    selectedIndex = 0
     searchMode = false
     query = ""
     refreshRows()
