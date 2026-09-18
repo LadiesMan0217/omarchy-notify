@@ -212,7 +212,9 @@ Panel {
       onCloseRequested: root.handleEscape()
       onTabRequested: function(direction) {}
       onTextKey: function(t) {
-        if (t === "g") { root.selectedIndex = 0; list.positionViewAtBeginning() }
+        if (t === "j" || t === "J") root.move(1)
+        else if (t === "k" || t === "K") root.move(-1)
+        else if (t === "g") { root.selectedIndex = 0; list.positionViewAtBeginning() }
         else if (t === "G") { root.selectedIndex = Math.max(0, root.rows.length - 1); list.positionViewAtEnd() }
         else if (t === "d") root.dismissSelected()
         else if (t === "x") root.dismissSelected()
